@@ -1,0 +1,2 @@
+select [attributes] from [table1 t1] join [table2 t2] on [t1.a1 = t2.a1] where [conditions] 
+group by [attributes] having [conditions] order by [attributes] limit [value] offset [value]

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block head_css %}
+{{ super() }}
+{% endblock %}
+
+
+{% block container %}
+<h1 style="text-align: center;margin-top:3%;">Translator</h1>
+<!-- <form>
+    <div class="form-group">
+        <label for="exampleFormControlTextarea1">SQL Query</label>
+        <textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
+    </div>
+</form> -->
+<div class="card" style="margin-top:3%;">
+    <div class="card-header">
+        <label for="exampleFormControlTextarea1">
+            <h5>SQL Query</h5>
+        </label>
+    </div>
+    <div class="card-body" style="padding: 0px;">
+        <textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
+    </div>
+</div>
+<div class="btn-toolbar justify-content-between" role="toolbar" aria-label="Toolbar with button groups"
+    style="margin-top: 1%;">
+    <!-- <button class="btn btn-success" type="button">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Validate
+    </button> -->
+    <button class="btn btn-success">
+        Button
+        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-check2" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+          </svg>
+    </button>
+    <div class="input-group" style="width:40%;float:right;">
+        <div class="input-group-prepend"><span class="input-group-text">Language</span></div>
+        <select class="custom-select languages">
+            <option value='SUM'>Dataframe</option>
+            <option value='AVG'>MongoDB</option>
+            <option value='MAX'>Spark</option>
+        </select>
+        <button class="btn btn-primary ml-5 btn-translate">Translate</button>
+    </div>
+</div>
+<div class="card" style="margin-top:3%;">
+    <div class="card-header">
+        <div class="btn-toolbar justify-content-between" role="toolbar" aria-label="Toolbar with button groups">
+            <h5>Result</h5>
+            <button type="button" class="close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        
+    </div>
+    <div class="card-body">
+        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+        
+    </div>
+</div>
+{% endblock %}
+
+
+{% block foot_js %}
+{{ super() }}
+{% endblock %}
