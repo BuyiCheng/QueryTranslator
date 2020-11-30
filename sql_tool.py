@@ -1,3 +1,5 @@
+import re
+
 def validate(sql):
     sql = sql.strip()
     error_msg = ''
@@ -31,12 +33,19 @@ def validate(sql):
 
 def getReservedWordsAndOrder(sql):
     default_list = ['select ',' from ', ' join ', ' where ', ' group by ', ' having ', ' order by ', ' limit ', ' offset ']
-    words_order_dict = {}
-    for w in default_list:
-        if sql.find(w) != -1:
-            words_order_dict[w] = sql.find(w)
-    words_ascending_dict = sorted(words_order_dict.items(), key=lambda x: x[1])
-    return words_ascending_dict
+    word_list = re.findall('|'.join(default_list), sql)
+    words_ascending_pair = []
+    for word in word_list:
+        pair = (word, sql.find(word))
+        words_ascending_pair.append(pair)
+        sql = sql.replace(word,'*'*len(word),1)
+    return words_ascending_pair    
+    # words_order_dict = {}
+    # for w in default_list:
+    #     if sql.find(w) != -1:
+    #         words_order_dict[w] = sql.find(w)
+    # words_ascending_dict = sorted(words_order_dict.items(), key=lambda x: x[1])
+    # return words_ascending_dict
 
 
 # def getProjection(sql):
@@ -76,20 +85,27 @@ def getReservedWordsAndOrder(sql):
 
 def getProjection(start_index, end_index, sql):
     projection = sql[start_index:end_index].strip()
-    return projection.split(',')
+    projection = [i.strip() for i in projection.split(',')]
+    return projection
 
 def getTable(start_index, end_index, sql):
-    return sql[start_index:end_index].strip()
-import re
+    return sql[start_index:end_index].strip().split(' ')[0]
+
 def getSelection(start_index, end_index, sql):
     # print(start_index, end_index)
     if end_index <= start_index:
         return None
     where_list = []
     where = sql[start_index:end_index].strip()
+    while where.find(' between ') != -1:
+        between_index = where.find(' between ') + 1
+        where = where[:between_index] + '*******' + where[between_index+len(' between ')-2:]
+        and_index = where[where.find(' between ')+len(' between '):].strip().find(' and ')
+        and_index = where.find(' between ')+len(' between ') + and_index + 1
+        where = where[:and_index] + '&&&' + where[and_index+3:]
     logic_list = re.findall(' and | or ', where)
     print(where, logic_list)
-
+    where = where.replace('*******','between').replace('&&&','and')
     for i, logic in enumerate(logic_list):
         if i == 0:
             where_list.append('and:'+where[:where.find(logic)])
@@ -106,19 +122,34 @@ def getSelection(start_index, end_index, sql):
 
 def getGroupBy(start_index, end_index, sql):
     group = sql[start_index: end_index].strip()
-    return group.split(' ')
+    group = [i.strip() for i in group.split(' ')]
+    return group
 
 def getOrderBy(start_index, end_index, sql):
     order = sql[start_index: end_index].strip()
-    return order.split(',')
+    order = [i.strip() for i in order.split(' ')]
+    return order
+
+def init_sql_dict():
+    sql_dict = {}
+    sql_dict['projection'] = []
+    sql_dict['table'] = ''
+    sql_dict['join'] = []
+    sql_dict['where'] = []
+    sql_dict['group'] = []
+    sql_dict['having'] = []
+    sql_dict['order'] = []
+    sql_dict['limit'] = ''
+    sql_dict['offset'] = ''
+    return sql_dict
 
 def parse_sql(sql):
     if not validate(sql):
         return None
     sql = sql.strip()
-    sql_dict = {}
+    sql_dict = init_sql_dict()
     words_ascending_pair = getReservedWordsAndOrder(sql)
-    # print(words_ascending_dict)
+    print(words_ascending_pair)
     # dict_keys = words_ascending_dict.keys()
     for i, word_pair in enumerate(words_ascending_pair):
         word, index = word_pair
@@ -135,7 +166,11 @@ def parse_sql(sql):
             join_type = sql[:sql.find(' join ')].split(' ')[-1]
             if join_type == sql_dict['table']:
                 join_type = 'inner'
-            sql_dict['join'] = join_type + ' ' + sql[sql.find(' join '):next_index].strip()
+            join = join_type + ' ' + sql[sql.find(' join '):next_index].strip()
+            if 'join' in sql_dict.keys():
+                sql_dict['join'].append(join)
+            else:
+                sql_dict['join'] = [join]
         elif word == ' where ':
             sql_dict['where'] = getSelection(index, next_index, sql)
         elif word == ' group by ':
