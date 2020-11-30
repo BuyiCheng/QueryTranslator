@@ -92,33 +92,35 @@ def getTable(start_index, end_index, sql):
     return sql[start_index:end_index].strip().split(' ')[0]
 
 def getSelection(start_index, end_index, sql):
-    # print(start_index, end_index)
-    if end_index <= start_index:
-        return None
-    where_list = []
-    where = sql[start_index:end_index].strip()
-    while where.find(' between ') != -1:
-        between_index = where.find(' between ') + 1
-        where = where[:between_index] + '*******' + where[between_index+len(' between ')-2:]
-        and_index = where[where.find(' between ')+len(' between '):].strip().find(' and ')
-        and_index = where.find(' between ')+len(' between ') + and_index + 1
-        where = where[:and_index] + '&&&' + where[and_index+3:]
-    logic_list = re.findall(' and | or ', where)
-    print(where, logic_list)
-    where = where.replace('*******','between').replace('&&&','and')
-    for i, logic in enumerate(logic_list):
-        if i == 0:
-            where_list.append('and:'+where[:where.find(logic)])
-        if i+1 < len(logic_list):
-            where = where[where.find(logic)+len(logic):]
-            condition = where[:where.find(logic_list[i+1])].strip()
-            where_list.append(logic.strip()+':'+condition)
-        else:
-            condition = where[where.find(logic)+len(logic):].strip()
-            where_list.append(logic.strip()+':'+condition)
-    if len(logic_list) == 0:
-        where_list.append('and:'+where)
-    return where_list
+    return sql[start_index: end_index].strip()
+# def getSelection(start_index, end_index, sql):
+#     # print(start_index, end_index)
+#     if end_index <= start_index:
+#         return None
+#     where_list = []
+#     where = sql[start_index:end_index].strip()
+#     while where.find(' between ') != -1:
+#         between_index = where.find(' between ') + 1
+#         where = where[:between_index] + '*******' + where[between_index+len(' between ')-2:]
+#         and_index = where[where.find(' between ')+len(' between '):].strip().find(' and ')
+#         and_index = where.find(' between ')+len(' between ') + and_index + 1
+#         where = where[:and_index] + '&&&' + where[and_index+3:]
+#     logic_list = re.findall(' and | or ', where)
+#     print(where, logic_list)
+#     where = where.replace('*******','between').replace('&&&','and')
+#     for i, logic in enumerate(logic_list):
+#         if i == 0:
+#             where_list.append('and:'+where[:where.find(logic)])
+#         if i+1 < len(logic_list):
+#             where = where[where.find(logic)+len(logic):]
+#             condition = where[:where.find(logic_list[i+1])].strip()
+#             where_list.append(logic.strip()+':'+condition)
+#         else:
+#             condition = where[where.find(logic)+len(logic):].strip()
+#             where_list.append(logic.strip()+':'+condition)
+#     if len(logic_list) == 0:
+#         where_list.append('and:'+where)
+#     return where_list
 
 def getGroupBy(start_index, end_index, sql):
     group = sql[start_index: end_index].strip()
@@ -135,9 +137,9 @@ def init_sql_dict():
     sql_dict['projection'] = []
     sql_dict['table'] = ''
     sql_dict['join'] = []
-    sql_dict['where'] = []
+    sql_dict['where'] = ''
     sql_dict['group'] = []
-    sql_dict['having'] = []
+    sql_dict['having'] = ''
     sql_dict['order'] = []
     sql_dict['limit'] = ''
     sql_dict['offset'] = ''

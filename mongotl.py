@@ -1,3 +1,4 @@
+import re
 import json
 
 '''
@@ -19,13 +20,7 @@ def tl_join(table, joins):
         else:
             foreignField = attrs[1].split('.')[1]
             localField = table + '.' + attrs[0].split('.')[1]
-            
 
-                
-        # join_table, _, foreignField, _, localField = join[join_index:].strip().split(' ')
-#         print(join_table,foreignField,localField)
-        # localField = localField.split('.')[1]
-        # foreignField = foreignField.split('.')[1]
         if join_type == 'inner join':
             isPreserveNull = False
         elif join_type == 'left join':
@@ -40,112 +35,212 @@ def tl_join(table, joins):
     return join_list
 
 
-def parse_where_value(value, ishaving=False):
-    # value price between 100 and 300
-    value_list = []
-    compare_dict = {'=': '$eq', '!=': '$ne', '>': '$gt', '>=': '$gte', '<': '$lt', '<=': '$lte', 'in': '$in',
-                    'not in': '$nin'}  # gt,gte,lt,lte,eq,ne (in,nin, all)
-    attr, compare = value.split(' ')[:2]
+# def parse_where_value(value, ishaving=False):
+#     # value price between 100 and 300
+#     isNot = False
+#     preLogic = '$and'
+#     if value.startswith("not "):
+#         isNot, value = True, value[len('not '):]
+#     value_list = []
+#     compare_dict = {'=': '$eq', '!=': '$ne', '>': '$gt', '>=': '$gte', '<': '$lt', '<=': '$lte', 'in': '$in',
+#                     'not in': '$nin'}  # gt,gte,lt,lte,eq,ne (in,nin, all)
+#     attr, compare = value.split(' ')[:2]
 
-    if attr.find('(') != -1:
-        attr_new = attr.split('(')[1][:-1]
+#     if attr.find('(') != -1:
+#         attr_new = attr.split('(')[1][:-1]
+#     else:
+#         attr_new = attr
+#     if compare == 'between':
+#         between_index = value.index('between') + len('between')
+#         between_1, between_2 = [i.strip() for i in value[between_index:].split('and')]
+#         if between_1.startswith("'") and between_1.endswith("'") or between_1.startswith('"') and between_1.endswith('"'):
+#             between_1,between_2 = between_1[1:-1],between_2[1:-1]
+#         else:
+#             if between_1.find('.') !=-1 or between_2.find('.') != -1:
+#                 between_1,between_2 = float(between_1), float(between_2)
+#             else:
+#                 between_1,between_2 = int(between_1), int(between_2)
+#         if ishaving:
+#             attr = attr.replace('.', '_')
+#         if isNot:
+#             preLogic = '$or'
+#             value_list.append({attr: {'$not':{compare_dict['>=']: between_1}}})
+#             value_list.append({attr: {'$not':{compare_dict['<=']: between_2}}})
+#         else:
+#             value_list.append({attr: {compare_dict['>=']: between_1}})
+#             value_list.append({attr: {compare_dict['<=']: between_2}})
+#     elif compare == 'in' or compare == 'not':  # not -> not in
+#         if compare == 'not':
+#             compare = 'not in'
+#         in_index = value.index(' in ') + len(' in ')
+#         in_list = value[in_index:].strip()[1:-1].split(',')
+#         print(in_list)
+#         if len(in_list) > 0 and in_list[0][0] in ['"',"'"] and in_list[0][-1] in ['"',"'"]:
+#             in_list = [i[1:-1] for i in in_list]
+#         else:
+#             if in_list[0].find('.') != -1:
+#                 in_list = [float(i) for i in in_list]
+#             else:
+#                 in_list =[int(i) for i in in_list]
+#         if ishaving:
+#             attr = attr.replace('.', '_')
+#         if isNot:
+#             value_list.append({attr: {'$not':{compare_dict[compare]: in_list}}})
+#         else:
+#             value_list.append({attr: {compare_dict[compare]: in_list}})
+#     else:
+#         attr_value = value.split(compare)[-1].strip()
+#         if attr_value[0] in ['"',"'"] and attr_value[-1] in ['"',"'"]:
+#             attr_value = attr_value[1:-1]
+#         elif attr_value.find('.') != -1:
+#             attr_value = float(attr_value)
+#         else:
+#             attr_value = int(attr_value)
+#         if ishaving:
+#             attr = attr.replace('.', '_')
+#         if isNot:
+#             value_list.append({attr: {'$not':{compare_dict[compare]: attr_value}}})
+#         else:
+#             value_list.append({attr: {compare_dict[compare]: attr_value}})
+#     return preLogic, value_list
+
+# listing.room_type = 'Private room'
+# listing.neighboourhood in ('Hollywood','Chinatown')
+def handle_value_type(value):
+    if value[0] in ['"',"'"] and value[-1] in ['"',"'"]:
+        return value[1:-1]
     else:
-        attr_new = attr
-    if compare == 'between':
-        between_index = value.index('between') + len('between')
-        between_1, between_2 = [i.strip() for i in value[between_index:].split('and')]
-        if between_1.startswith("'") and between_1.endswith("'") or between_1.startswith('"') and between_1.endswith('"'):
-            between_1,between_2 = between_1[1:-1],between_2[1:-1]
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        try:
+            return float(value)
+        except ValueError:
+            pass
+        try:
+            import unicodedata
+            return unicodedata.numeric(value)
+        except (TypeError, ValueError):
+            pass
+    return value
+
+def parse_in(item, isNot, isHaving):
+    if item.find(' not ') != -1:
+        key, value = item.split(' not in ')
+        key = key.strip()
+        if isHaving:
+            key = key.replace('.','_')
+        value = [handle_value_type(i.strip()) for i in value[1:-1].split(',')]
+        if isNot:
+            return key, {key.strip:{'$in':value}}
         else:
-            if between_1.find('.') !=-1 or between_2.find('.') != -1:
-                between_1,between_2 = float(between_1), float(between_2)
-            else:
-                between_1,between_2 = int(between_1), int(between_2)
-        if ishaving:
-            attr = attr.replace('.', '_')
-        value_list.append({attr: {compare_dict['>=']: between_1}})
-        value_list.append({attr: {compare_dict['<=']: between_2}})
-    elif compare == 'in' or compare == 'not':  # not -> not in
-        if compare == 'not':
-            compare = 'not in'
-        in_index = value.index(' in ') + len(' in ')
-        in_list = value[in_index:].strip()[1:-1].split(',')
-        print(in_list)
-        if len(in_list) > 0 and in_list[0][0] in ['"',"'"] and in_list[0][-1] in ['"',"'"]:
-            in_list = [i[1:-1] for i in in_list]
-        else:
-            if in_list[0].find('.') != -1:
-                in_list = [float(i) for i in in_list]
-            else:
-                in_list =[int(i) for i in in_list]
-        if ishaving:
-            attr = attr.replace('.', '_')
-        value_list.append({attr: {compare_dict[compare]: in_list}})
+            return key, {key:{'$not':{'$in':value}}}
     else:
-        attr_value = value.split(compare)[-1].strip()
-        if attr_value[0] in ['"',"'"] and attr_value[-1] in ['"',"'"]:
-            attr_value = attr_value[1:-1]
-        elif attr_value.find('.') != -1:
-            attr_value = float(attr_value)
+        key, value = item.split(' in ')
+        key = key.strip()
+        if isHaving:
+            key = key.replace('.','_')
+        value = [handle_value_type(i.strip()) for i in value[1:-1].split(',')]
+        if isNot:
+            return key, {key:{'$not':{'$in':value}}}
         else:
-            attr_value = int(attr_value)
-        if ishaving:
-            attr = attr.replace('.', '_')
-        value_list.append({attr: {compare_dict[compare]: attr_value}})
-    return value_list
+            return key, {key:{'$in':value}}
 
+#listing.price between 4000 and 5000
+def parse_between(item, isNot, isHaving):
+    key, value = item.split(' between ')
+    key = key.strip()
+    if isHaving:
+        key = key.replace('.','_')
+    v1,v2 = [handle_value_type(i.strip()) for i in value.split(' and ')]
+    if isNot:
+        return key, {'$or':[{key:{'$lt':v1}},{key:{'$gt':v2}}]}
+    else:
+        return key, {'$and':[{key:{'$gte':v1}},{key:{'$lte':v2}}]}
 
-def tl_where(where):
-    where_dict = {}
-    or_list = []
-    temp_list = []
-    for item in where:
-        if len(temp_list) == 0:
-            temp_list.append(item)
+def parse_item(item,isHaving):
+    
+    comparison_dict = {'=': '$eq', '!=': '$ne', '>': '$gt', '>=': '$gte', '<': '$lt', '<=': '$lte'}
+    # recover between and
+    item = item.replace('*between*', 'between').replace('*and*','and')
+    isNot = False
+    # print("item:",item)
+    if item.startswith('not '):
+        isNot = True
+        item = item[len('not '):]
+    if item.find(' between ') != -1:
+        return parse_between(item, isNot, isHaving)
+    elif item.find(' in ') != -1:
+        return parse_in(item, isNot, isHaving)
+    else:
+        comparison_operators = list(comparison_dict.keys())
+        compare = re.findall('|'.join(comparison_operators),item)[0]
+        key, value = [handle_value_type(i.strip()) for i in item.split(compare)]
+        if isHaving:
+            key = key.replace('.','_')
+        if isNot:
+            return key, {key:{'$not':{comparison_dict[compare]:value}}}
         else:
-            logic = item.split(':')[0]
-            if logic == 'or':
-                or_list.append(temp_list)
-                temp_list = []
-                temp_list.append(item)
-            else:
-                temp_list.append(item)
-    if len(temp_list) > 0:
-        or_list.append(temp_list)
-    if len(or_list) > 1:
-        result = {'$or':[]}
-        for i, item in enumerate(or_list):
-            result['$or'].append({'$and': []})
-            for s in item:
+            return key, {key:{comparison_dict[compare]:value}}
 
-                for j in parse_where_value(s.split(':')[1]):
-                    if s.split(':')[0] == 'not':
-                        j = {'$not':j}
-                    result['$or'][i]['$and'].append(j)
+
+def handle_and(item, isHaving):
+    result = {}
+    and_list = item.split(' and ')
+    key_list = []
+    if len(and_list) == 1:
+        
+        key, new_item = parse_item(and_list[0], isHaving)
+        result = new_item
+        key_list.append(key)
+    else:
+        result['$and'] = []
+        for item in and_list:
+            key, new_item = parse_item(item, isHaving)
+            result['$and'].append(new_item)
+            key_list.append(key)
+    return key_list, result
+
+# where:listing.room_type = 'Private room' or listing.neighboourhood = 'Hollywood' 
+# and not listing.price between 4000 and 5000
+def tl_where(where, isHaving=False):
+    if where == '':
+        return [],None
+    # repalce between and with *between*
+    while where.find(' between ') != -1:
+        between_index = where.find(' between ') + 1
+        and_index = between_index + where[between_index:].find(' and ') + 1
+        where = where[:between_index]+'*between*'+where[between_index+len('between'):and_index]+ '*and*'+where[and_index+len('and'):]
+
+    or_list = where.split(" or ")
+    # listing.room_type = 'Private room'
+    # listing.neighboourhood = 'Hollywood' and not listing.price between 4000 and 5000
+    keys = []
+    if len(or_list) == 0:
+        return keys, None
     elif len(or_list) == 1:
-        result = {'$and':[]}
-        for s in or_list[0]:
-            for j in parse_where_value(s.split(':')[1]):
-                if s.split(':')[0] == 'not':
-                    for k,v in j.items():
-                        result['$and'].append({k:{'$not': v}})
-                else:
-                    result['$and'].append(j)
-
+        result = {"$match":{}}
+        keys, result['$match'] = handle_and(or_list[0], isHaving)
     else:
-        result = None
-    print('result:',result if result is not None else 'None')
-    return {'$match': result} if len(where) != 0 else None
-
+        result = {"$match":{"$or":[]}}
+        for item in or_list:
+            key_list, new_item = handle_and(item, isHaving)
+            result['$match']['$or'].append(new_item)
+            for key in key_list:
+                keys.append(key)
+    return list(set(keys)), result
 
 def tl_group(group, having, order, projection):
     group_dict = {'$group': {'_id': {}}}
     for g in group:
         group_dict['$group']['_id'][g.replace('.', '_')] = '$' + g
     attrs = set()
-    for h in having:
+    having_attrs, _ = tl_having(having)
+    for h in having_attrs:
         if h.find('(') != -1:
-            attrs.add(h.split(':')[1].split(' ')[0])
+            # attrs.add(h.split(':')[1].split(' ')[0])
+            attrs.add(h)
     for o in order:
         if o.find('(') != -1:
             attrs.add(o.split(' ')[0])
@@ -161,26 +256,27 @@ def tl_group(group, having, order, projection):
         group_dict['$group'][a.replace('.', '_')] = value
     return group_dict if len(group) != 0 else None
 
-
-def tl_having(having):
-    result = {}
-    having_dict = {'and': [], 'or': [], 'not': []}
-    for item in having:
-        key, value = item.split(':')
-        for i in parse_where_value(value,True):
-            having_dict[key].append(i)
-    for key, value in having_dict.items():
-        if key == 'not':
-            for x in value:
-                for k, v in x.items():
-                    result.setdefault('$and', []).append({k: {'$not': v}})
-        else:
-           result['$'+key] = value
-    match = {'$match': {}}
-    for key, value in result.items():
-        if len(value) > 0:
-            match['$match'][key] = value
-    return match if len(having) != 0 else None
+def tl_having(having, isHaving=True):
+    return tl_where(having, isHaving)
+# def tl_having(having):
+#     result = {}
+#     having_dict = {'and': [], 'or': [], 'not': []}
+#     for item in having:
+#         key, value = item.split(':')
+#         for i in parse_where_value(value,True):
+#             having_dict[key].append(i)
+#     for key, value in having_dict.items():
+#         if key == 'not':
+#             for x in value:
+#                 for k, v in x.items():
+#                     result.setdefault('$and', []).append({k: {'$not': v}})
+#         else:
+#            result['$'+key] = value
+#     match = {'$match': {}}
+#     for key, value in result.items():
+#         if len(value) > 0:
+#             match['$match'][key] = value
+#     return match if len(having) != 0 else None
 
 
 def tl_order(order, group):
@@ -249,17 +345,18 @@ def translate(sql_dict):
     if len(sql_dict['join']) > 0:
         pipeline.append({"$project": {"_id": 0, sql_dict['table']: "$$ROOT"}})
         for j in tl_join(sql_dict['table'], sql_dict['join']):
-            print(j)
+            # print(j)
             pipeline.append(j)
             if '$lookup' in j.keys():
                 tables.append(j['$lookup']['from'])
-    if tl_where(sql_dict['where']) is not None:
-        pipeline.append(tl_where(sql_dict['where']))
+    _, where = tl_where(sql_dict['where'])
+    if where is not None:
+        pipeline.append(where)
     if tl_group(sql_dict['group'], sql_dict['having'], sql_dict['order'], sql_dict['projection']) is not None:
         pipeline.append(tl_group(sql_dict['group'], sql_dict['having'], sql_dict['order'], sql_dict['projection']))
-
-    if tl_having(sql_dict['having']) is not None:
-        pipeline.append(tl_having(sql_dict['having']))
+    _, having = tl_having(sql_dict['having'])
+    if having is not None:
+        pipeline.append(having)
     if tl_order(sql_dict['order'], sql_dict['group']) is not None:
         pipeline.append(tl_order(sql_dict['order'], sql_dict['group']))
     if tl_projection(sql_dict['projection'], sql_dict['group'], sql_dict['join']) is not None:
