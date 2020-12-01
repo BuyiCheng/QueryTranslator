@@ -129,7 +129,7 @@ def getGroupBy(start_index, end_index, sql):
 
 def getOrderBy(start_index, end_index, sql):
     order = sql[start_index: end_index].strip()
-    order = [i.strip() for i in order.split(' ')]
+    order = [i.strip() for i in order.split(',')]
     return order
 
 def init_sql_dict():
@@ -183,7 +183,7 @@ def parse_sql(sql):
             sql_dict['order'] = getOrderBy(index, next_index, sql)
         elif word == ' limit ':
             sql_dict['limit'] = sql[index: next_index].strip()
-        elif word == ' limit ':
+        elif word == ' offset ':
             sql_dict['offset'] = sql[index: next_index].strip()    
 # default_list = ['select ',' from ', ' join ', ' where ', ' group by ', ' having ', ' order by ', ' limit ', ' offset ']
     

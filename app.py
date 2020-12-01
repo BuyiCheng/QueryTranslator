@@ -1,5 +1,6 @@
 import sql_tool
 import mongotl
+import dataframetl
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
@@ -18,4 +19,6 @@ def translate():
     print("sql_dict:",sql_dict)
     if tl_type == 'MongoDB':
         result = mongotl.translate(sql_dict)
+    elif tl_type == 'Pandas Dataframe':
+        result = dataframetl.translate(sql_dict)
     return jsonify({'tl': result})

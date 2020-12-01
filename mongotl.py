@@ -13,7 +13,7 @@ def tl_join(table, joins):
         join_table = temp.split(' on ')[0].strip()
         on = temp.split(' on ')[1].strip()
         attrs = [i.strip() for i in on.split('=')]
-        print("attrs:",attrs)
+        # print("attrs:",attrs)
         if attrs[0].split('.')[0] == join_table:
             foreignField = attrs[0].split('.')[1]
             localField = table + '.' + attrs[1].split('.')[1]
@@ -35,77 +35,6 @@ def tl_join(table, joins):
     return join_list
 
 
-# def parse_where_value(value, ishaving=False):
-#     # value price between 100 and 300
-#     isNot = False
-#     preLogic = '$and'
-#     if value.startswith("not "):
-#         isNot, value = True, value[len('not '):]
-#     value_list = []
-#     compare_dict = {'=': '$eq', '!=': '$ne', '>': '$gt', '>=': '$gte', '<': '$lt', '<=': '$lte', 'in': '$in',
-#                     'not in': '$nin'}  # gt,gte,lt,lte,eq,ne (in,nin, all)
-#     attr, compare = value.split(' ')[:2]
-
-#     if attr.find('(') != -1:
-#         attr_new = attr.split('(')[1][:-1]
-#     else:
-#         attr_new = attr
-#     if compare == 'between':
-#         between_index = value.index('between') + len('between')
-#         between_1, between_2 = [i.strip() for i in value[between_index:].split('and')]
-#         if between_1.startswith("'") and between_1.endswith("'") or between_1.startswith('"') and between_1.endswith('"'):
-#             between_1,between_2 = between_1[1:-1],between_2[1:-1]
-#         else:
-#             if between_1.find('.') !=-1 or between_2.find('.') != -1:
-#                 between_1,between_2 = float(between_1), float(between_2)
-#             else:
-#                 between_1,between_2 = int(between_1), int(between_2)
-#         if ishaving:
-#             attr = attr.replace('.', '_')
-#         if isNot:
-#             preLogic = '$or'
-#             value_list.append({attr: {'$not':{compare_dict['>=']: between_1}}})
-#             value_list.append({attr: {'$not':{compare_dict['<=']: between_2}}})
-#         else:
-#             value_list.append({attr: {compare_dict['>=']: between_1}})
-#             value_list.append({attr: {compare_dict['<=']: between_2}})
-#     elif compare == 'in' or compare == 'not':  # not -> not in
-#         if compare == 'not':
-#             compare = 'not in'
-#         in_index = value.index(' in ') + len(' in ')
-#         in_list = value[in_index:].strip()[1:-1].split(',')
-#         print(in_list)
-#         if len(in_list) > 0 and in_list[0][0] in ['"',"'"] and in_list[0][-1] in ['"',"'"]:
-#             in_list = [i[1:-1] for i in in_list]
-#         else:
-#             if in_list[0].find('.') != -1:
-#                 in_list = [float(i) for i in in_list]
-#             else:
-#                 in_list =[int(i) for i in in_list]
-#         if ishaving:
-#             attr = attr.replace('.', '_')
-#         if isNot:
-#             value_list.append({attr: {'$not':{compare_dict[compare]: in_list}}})
-#         else:
-#             value_list.append({attr: {compare_dict[compare]: in_list}})
-#     else:
-#         attr_value = value.split(compare)[-1].strip()
-#         if attr_value[0] in ['"',"'"] and attr_value[-1] in ['"',"'"]:
-#             attr_value = attr_value[1:-1]
-#         elif attr_value.find('.') != -1:
-#             attr_value = float(attr_value)
-#         else:
-#             attr_value = int(attr_value)
-#         if ishaving:
-#             attr = attr.replace('.', '_')
-#         if isNot:
-#             value_list.append({attr: {'$not':{compare_dict[compare]: attr_value}}})
-#         else:
-#             value_list.append({attr: {compare_dict[compare]: attr_value}})
-#     return preLogic, value_list
-
-# listing.room_type = 'Private room'
-# listing.neighboourhood in ('Hollywood','Chinatown')
 def handle_value_type(value):
     if value[0] in ['"',"'"] and value[-1] in ['"',"'"]:
         return value[1:-1]
@@ -326,7 +255,7 @@ def tl_projection(attribute, group, joins):
                 projection_dict['$project'][a] = 1
         else:
             projection_dict = {'$project': {'_id': 0}}
-        print('projection_dict', projection_dict)
+        # print('projection_dict', projection_dict)
 
     return projection_dict
 
