@@ -13,9 +13,6 @@ def getTableDict(s_list, table, join):
             s_list.append("{0} = pd.read_csv('{0}.csv')".format(t))
     for t in tables:
         columns = {}
-        
-        # for c in t.columns:
-        #     columns[c] = t + '_' + c
            
         if len(join) > 0:
             s_list.append("columns_map = {}")
@@ -119,29 +116,6 @@ def parse_where(s_list, where, isHaving=False):
         result = result + logic_map[l.strip()] + r
     s_list.append('df = df['+result+']')
     return keys,s_list
-    # logic_con_map = {}
-    # for w in where:
-    #     logic, reverse = w.split(':')[0], False
-    #     if logic == 'not':
-    #         reverse = True
-    #     logic_con_map[getCon(w.split(':')[1], type_dict, reverse)] = logic
-
-    # con = ''
-    # for k, v in logic_con_map.items():
-    #     if con == '':
-    #         con += k
-    #     else:
-    #         if v == 'or':
-    #             con = con + '|' + k
-    #         else:
-    #             con = con + '&' + k
-
-    # if con == '':
-    #     return s_list, df
-    # else:
-    #     s_list.append("df = df[{}]".format(con))
-    #     #         print(con)
-    #     return s_list, df[eval(con)]
 
 
 def parse_group(s_list, group, projection, order, having):
