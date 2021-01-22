@@ -27,6 +27,8 @@ def parse_join(s_list, table, joins):
     for join in joins:
         join_table = join.split('join ')[1].split(' ')[0]
         right,left = join.split(' on ')[1].split(' = ')
+        if left.split('.')[0] == join_table:
+            left, right = right, left
         join_type = 'inner'
         if join.startswith('left'):
             join_type = 'left'
@@ -54,6 +56,8 @@ def handle_value_type(value):
         except (TypeError, ValueError):
             pass
     return value
+
+
 def parse_between(item, isNot, isHaving):
     key, value = item.split(' between ')
     key = key.strip()
@@ -61,7 +65,7 @@ def parse_between(item, isNot, isHaving):
         key = key.replace('.','_')
     v1,v2 = [handle_value_type(i.strip()) for i in value.split(' and ')]
     n = '~' if isNot else ''
-    return key, "{3}(df['{0}'] >= {1})&{3}(df['{0}'] <= {2}".format(key, v1, v2, n)
+    return key, "{3}(df['{0}'] >= {1})&{3}(df['{0}'] <= {2})".format(key, v1, v2, n)
 def parse_in(item, isNot, isHaving):
     if item.find(' not ') != -1:
         key, value = item.split(' not in ')
@@ -88,12 +92,14 @@ def parse_condition(item, isHaving):
     elif item.find(' in ') != -1:
         key, result = parse_in(item, isNot, isHaving)
     else:
-        comparison_operators = ['=','!=','<','<=','>','>=']
+        item = item.replace(' = ',' == ')
+        comparison_operators = ['==','!=','<','<=','>','>=']
         compare = re.findall('|'.join(comparison_operators), item)[0]
         key,value = [i.strip() for i in item.split(compare)]
         if isHaving:
             key = key.replace('.','_')
         result = "{}(df['{}'] {} {})".format(n, key, compare, value)
+        print("result:",result)
     return key, result
 
 def parse_where(s_list, where, isHaving=False):

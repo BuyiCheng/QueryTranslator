@@ -124,7 +124,7 @@ def getSelection(start_index, end_index, sql):
 
 def getGroupBy(start_index, end_index, sql):
     group = sql[start_index: end_index].strip()
-    group = [i.strip() for i in group.split(' ')]
+    group = [i.strip() for i in group.split(',')]
     return group
 
 def getOrderBy(start_index, end_index, sql):
